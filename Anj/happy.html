@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Anj</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: #000; /* fallback color */
+                height: 100vh;
+                font-family: Arial, sans-serif;
+                overflow: hidden;
+            }
+
+            /* Background video styling */
+            #bg-video {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: -1;
+                pointer-events: none;
+            }
+
+            /* Overlay canvas sits above the video (no drawing) */
+            #overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 1;
+                pointer-events: none;
+                display: block;
+                cursor: default;
+            }
+
+            /* Single scuba at bottom-left */
+            #scuba {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                width: 120px;
+                height: auto;
+                z-index: 3;
+                pointer-events: none;
+                transform-origin: 50% 50%;
+                animation: scuba-bob 4s ease-in-out infinite;
+                filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45));
+            }
+
+            @keyframes scuba-bob {
+                0%   { transform: translateY(0) rotate(-1deg); }
+                50%  { transform: translateY(-8px) rotate(1deg); }
+                100% { transform: translateY(0) rotate(-1deg); }
+            }
+
+            /* Go Back button (styled like Genshin) */
+            .go-back {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                z-index: 4;
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 16px;
+                color: #fff;
+                font-family: 'Cinzel', 'Times New Roman', Georgia, serif;
+                font-weight: 700;
+                font-size: 15px;
+                letter-spacing: 0.6px;
+                text-decoration: none;
+                text-align: center;
+                background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+                border: 1px solid rgba(255, 220, 120, 0.12);
+                border-radius: 14px;
+                backdrop-filter: blur(6px) saturate(120%);
+                box-shadow: 0 8px 22px rgba(8,6,4,0.45), inset 0 1px 0 rgba(255,255,255,0.03);
+                transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .go-back::before {
+                content: "←";
+                display: inline-block;
+                font-size: 16px;
+                transform: translateY(-1px);
+                color: #ffdca0;
+                opacity: 0.95;
+            }
+
+            .go-back:hover {
+                transform: translateY(-4px) scale(1.02);
+                box-shadow: 0 14px 34px rgba(12,8,6,0.55);
+                background: linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.025));
+            }
+
+            .go-back:active {
+                transform: translateY(-2px) scale(0.995);
+                box-shadow: 0 8px 20px rgba(8,6,4,0.45);
+            }
+
+            /* Redirect button (top-right) */
+            .redirect-btn {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                z-index: 5;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 14px;
+                color: #2b1a08;
+                background: linear-gradient(180deg,#ffdca0,#e8b84b);
+                border: 1px solid rgba(0,0,0,0.12);
+                border-radius: 12px;
+                font-weight: 700;
+                font-family: 'Cinzel', 'Times New Roman', Georgia, serif;
+                cursor: pointer;
+                box-shadow: 0 8px 22px rgba(6,6,8,0.35);
+                text-decoration: none;
+            }
+            .redirect-btn:hover { transform: translateY(-3px); }
+            .redirect-btn:active { transform: translateY(-1px) scale(0.995); }
+
+            @media (max-width: 520px) {
+                .go-back { font-size: 13px; padding: 8px 12px; border-radius: 12px; }
+                #scuba { width: 90px; bottom: 14px; left: 14px; }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Background video -->
+        <video id="bg-video" autoplay muted loop playsinline aria-hidden="true">
+            <source src="Genshin3.mp4" type="video/mp4">
+        </video>
+
+        <!-- Canvas overlay - visual effects and text only -->
+        <canvas id="overlay" aria-hidden="false"></canvas>
+
+        <!-- Single scuba sits on bottom-left -->
+        <img id="scuba" src="scuba.gif" alt="Scuba" aria-hidden="true">
+
+        <!-- Go Back button -->
+        <a href="main.html" class="go-back" aria-label="Go back">Go Back</a>
+
+        <!-- Redirect button -->
+        <button id="redirect-btn" class="redirect-btn" aria-label="Click this">pa click po</button>
+
+        <script>
+            const video = document.getElementById('bg-video');
+            const canvas = document.getElementById('overlay');
+            const ctx = canvas.getContext('2d');
+
+            // handle high DPI and sizing for the canvas
+            function resizeCanvas() {
+                const dpr = window.devicePixelRatio || 1;
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+
+                canvas.width = Math.round(w * dpr);
+                canvas.height = Math.round(h * dpr);
+                canvas.style.width = w + 'px';
+                canvas.style.height = h + 'px';
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // simple floating hearts animation
+            const hearts = [];
+            function spawnHeart() {
+                hearts.push({
+                    x: Math.random() * window.innerWidth,
+                    y: window.innerHeight + 20,
+                    size: 12 + Math.random() * 20,
+                    vx: (Math.random() - 0.5) * 0.6,
+                    vy: -1 - Math.random() * 1.2,
+                    alpha: 0.9
+                });
+            }
+
+            // helper to wrap text into lines
+            function wrapText(ctxLocal, text, maxWidth) {
+                const words = text.split(' ');
+                const lines = [];
+                let line = '';
+                for (let n = 0; n < words.length; n++) {
+                    const testLine = line ? line + ' ' + words[n] : words[n];
+                    const metrics = ctxLocal.measureText(testLine);
+                    if (metrics.width > maxWidth && line) {
+                        lines.push(line);
+                        line = words[n];
+                    } else {
+                        line = testLine;
+                    }
+                }
+                if (line) lines.push(line);
+                return lines;
+            }
+
+            // draw loop: draw video frame, overlay effects, hearts, styled text
+            function draw() {
+                // clear and draw video (cover)
+                try {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.save();
+                    const vw = video.videoWidth || window.innerWidth;
+                    const vh = video.videoHeight || window.innerHeight;
+                    const cw = window.innerWidth;
+                    const ch = window.innerHeight;
+                    const scale = Math.max(cw / vw, ch / vh);
+                    const sw = vw * scale;
+                    const sh = vh * scale;
+                    const sx = (cw - sw) / 2;
+                    const sy = (ch - sh) / 2;
+                    ctx.drawImage(video, sx, sy, sw, sh);
+                    ctx.restore();
+                } catch (e) {
+                    // video not ready
+                }
+
+                // subtle vignette/overlay for contrast
+                const vignette = ctx.createRadialGradient(window.innerWidth/2, window.innerHeight/2, Math.min(window.innerWidth, window.innerHeight)*0.2, window.innerWidth/2, window.innerHeight/2, Math.max(window.innerWidth, window.innerHeight));
+                vignette.addColorStop(0, 'rgba(0,0,0,0)');
+                vignette.addColorStop(1, 'rgba(0,0,0,0.25)');
+                ctx.fillStyle = vignette;
+                ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+                // spawn hearts occasionally
+                if (Math.random() < 0.06) spawnHeart();
+
+                // update & draw hearts
+                for (let i = hearts.length - 1; i >= 0; i--) {
+                    const h = hearts[i];
+                    h.x += h.vx * 2;
+                    h.y += h.vy * 2;
+                    h.alpha -= 0.005;
+                    if (h.y < -50 || h.alpha <= 0) hearts.splice(i, 1);
+                    else {
+                        ctx.save();
+                        ctx.globalAlpha = Math.max(0, h.alpha);
+                        ctx.fillStyle = 'rgba(255,105,180,0.95)';
+                        const x = h.x, y = h.y, s = h.size;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.bezierCurveTo(x, y - s*0.6, x - s, y - s*0.9, x - s, y - s*0.2);
+                        ctx.bezierCurveTo(x - s, y + s*0.6, x, y + s*0.9, x, y + s*1.4);
+                        ctx.bezierCurveTo(x, y + s*0.9, x + s, y + s*0.6, x + s, y - s*0.2);
+                        ctx.bezierCurveTo(x + s, y - s*0.9, x, y - s*0.6, x, y);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                }
+
+                // styled, responsive multi-line title moved lower and styled like Genshin
+                const title = "No matter how dark the hour becomes, I cannot imagine a future where my heart does not continue its quiet journey toward yours.";
+                const fontSize = Math.round(Math.max(20, Math.min(56, window.innerWidth * 0.04)));
+                ctx.save();
+                ctx.font = `700 ${fontSize}px 'Cinzel', 'Times New Roman', Georgia, serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const maxTextWidth = Math.round(window.innerWidth * 0.72);
+                const lines = wrapText(ctx, title, maxTextWidth);
+                const lineHeight = Math.round(fontSize * 1.15);
+                const blockHeight = lines.length * lineHeight;
+                const centerX = window.innerWidth / 2;
+                const startY = Math.round(window.innerHeight * 0.45 - blockHeight / 2);
+
+                // light frosted backdrop behind text for legibility
+                ctx.save();
+                ctx.globalAlpha = 0.26;
+                ctx.fillStyle = 'rgba(10,8,6,1)';
+                const padX = 20;
+                const padY = 14;
+                const rectW = maxTextWidth + padX * 2;
+                const rectH = blockHeight + padY * 2;
+                const rectX = centerX - rectW / 2;
+                const rectY = startY - padY;
+                ctx.shadowColor = 'rgba(0,0,0,0.6)';
+                ctx.shadowBlur = 24;
+                const r = 16;
+                ctx.beginPath();
+                ctx.moveTo(rectX + r, rectY);
+                ctx.arcTo(rectX + rectW, rectY, rectX + rectW, rectY + rectH, r);
+                ctx.arcTo(rectX + rectW, rectY + rectH, rectX, rectY + rectH, r);
+                ctx.arcTo(rectX, rectY + rectH, rectX, rectY, r);
+                ctx.arcTo(rectX, rectY, rectX + rectW, rectY, r);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+
+                // gold gradient for fill
+                const grad = ctx.createLinearGradient(0, rectY, 0, rectY + rectH);
+                grad.addColorStop(0, '#fff7e6');
+                grad.addColorStop(0.45, '#ffe38a');
+                grad.addColorStop(0.7, '#e8b84b');
+                grad.addColorStop(1, '#d39b2a');
+
+                // dark stroke to emulate carved lettering
+                ctx.lineWidth = Math.max(3, Math.round(fontSize * 0.08));
+                ctx.strokeStyle = 'rgba(20,12,6,0.9)';
+                ctx.shadowColor = 'rgba(255,200,120,0.16)';
+                ctx.shadowBlur = 18;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const y = startY + i * lineHeight + lineHeight / 2;
+                    ctx.strokeText(lines[i], centerX, y);
+                    ctx.fillStyle = grad;
+                    ctx.fillText(lines[i], centerX, y);
+                }
+                ctx.restore();
+
+                requestAnimationFrame(draw);
+            }
+
+            // start draw loop when video is ready
+            if (video.readyState >= 2) {
+                requestAnimationFrame(draw);
+            } else {
+                video.addEventListener('canplay', () => requestAnimationFrame(draw), { once: true });
+            }
+
+            // redirect button behavior
+            document.getElementById('redirect-btn').addEventListener('click', function () {
+                const url = 'https://youtu.be/WW7EFEJUUlE?si=yHxUifFSaJU5i2Tx';
+                const win = window.open(url, '_blank');
+                if (win) win.opener = null; // prevent access to opener for security
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Anj</title>
+  <style>
+    :root{
+      --card-max-w: 760px;
+      --card-pad: 36px;
+      --card-radius: 18px;
+      --gradient-start: #0a0a0a;
+      --gradient-end: #D4AF37;
+      --paper: #fffefb;
+      --text: #2c2c2c;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial;
+      /* video will be used as the background (see #bg-video) */
+      background-color: #000; /* fallback while video loads */
+      background-position: center 80%;
+      min-height: 100vh; /* Ensures it fills the viewport height */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0; /* Remove any padding */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* Background video */
+    #bg-video{
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+      pointer-events: none;
+      filter: saturate(1.02) brightness(0.95);
+    }
+
+    /* centered translucent container with gradient background */
+    .container {
+      width: 100%;
+      max-width: var(--card-max-w);
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      border-radius: var(--card-radius);
+      padding: var(--card-pad);
+      box-shadow: 0 12px 30px rgba(20,20,30,0.14);
+      border: 1px solid rgba(255,255,255,0.35);
+      backdrop-filter: blur(6px) saturate(120%);
+      -webkit-backdrop-filter: blur(6px) saturate(120%);
+      position: relative;
+      
+    }
+
+    .letter {
+      background: linear-gradient(180deg, var(--paper), #fff);
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: inset 0 6px 18px rgba(0,0,0,0.03);
+      position: relative; /* To position the stamp inside */
+      max-height: 70vh; /* Limit height to prevent overflow */
+      overflow-y: auto; /* Add vertical scroll if content exceeds max height */
+    }
+
+    .letter h1 {
+      margin: 0 0 10px 0;
+      font-size: 20px;
+      letter-spacing: 0.2px;
+      color: black;
+      font-weight: 700;
+      font-family: "Segoe UI", system-ui;
+    }
+
+    .letter .meta {
+      margin-bottom: 18px;
+      color: #6b6b6b;
+      font-size: 13px;
+    }
+
+    .letter .body {
+      font-family: "Georgia", "Times New Roman", serif;
+      line-height: 1.6;
+      font-size: 16px;
+      white-space: pre-wrap;
+      color: var(--text);
+    }
+
+    .stamp {
+      position: absolute;
+      top: 35px; /* Adjust to position the stamp */
+      right: 40px; /* Adjust to position the stamp */
+      width: 130px; /* Set the size of the stamp */
+      height: 130px;
+      border-radius: 50%; /* Make it circular */
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .stamp img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* Ensure the image fits nicely */
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .actions p {
+      margin-bottom: 16px;
+      font-size: 14px;
+      font-weight: 100;
+      color: #2c2c2c;
+      text-align: center;
+      font-family: Georgia, 'Times New Roman', Times, serif;
+    }
+
+    .btn-container {
+      display: flex;
+      gap: 40px; /* Increased gap to move buttons farther apart */
+    }
+
+    .btn {
+      background: #D4AF37;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(255,140,170,0.18);
+      font-weight: 600;
+      position: relative;
+      transition: opacity 0.2s ease; /* Smooth transition for hiding */
+    }
+
+    .no-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .hidden-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 16px;
+      font-weight: bold;
+      color: #c85d7a;
+      opacity: 0; /* Initially hidden */
+      pointer-events: none; /* Prevent interaction */
+      transition: opacity 0.2s ease; /* Smooth fade-in effect */
+    }
+
+    .btn.no.hidden + .hidden-text {
+      opacity: 1; /* Show the text when the button is hidden */
+    }
+
+    .btn.no {
+      opacity: 1; /* Fully visible by default */
+    }
+
+    .btn.hidden {
+      opacity: 0; /* Hidden when the class is added */
+      pointer-events: none; /* Prevent interaction when hidden */
+    }
+
+    @media (max-width: 520px) {
+      :root {
+        --card-pad: 20px;
+      }
+      .letter {
+        padding: 18px;
+      }
+      .letter h1 {
+        font-size: 18px;
+      }
+      .letter .body {
+        font-size: 15px;
+      }
+      .actions p {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background video (autoplay requires muted) -->
+  <video id="bg-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
+    <source src="Genshin2.mp4" type="video/mp4">
+    <!-- fallback text -->
+  </video>
+  <main class="container" role="main" aria-label="Letter container">
+    <article class="letter" role="article" aria-labelledby="letter-title">
+      <div class="stamp">
+        <img src="Zhongli.jpg" alt="Stamp">
+      </div>
+      <h1 id="letter-title">Baby</h1>
+      <div class="meta">For my favorite person who loves Genshin Impact</div>
+
+      <div class="body">
+Dear Anj,
+
+I just want to say that I am truly sorry for what I’ve done. I know my actions hurt you, and I regret causing you pain. You didn’t deserve that, and I take full responsibility for my mistakes.
+
+I’ve been thinking a lot about everything, and I realize how wrong I was. Please know that hurting you was never my intention, but I understand that intentions do not erase the pain I caused.
+
+You are someone I genuinely care about, and it hurts knowing that I disappointed you. I wish I could take back my actions and make things right. All I can do now is sincerely apologize and hope that, in time, you can forgive me.
+
+There’s still so much I want to know about you. As you can see, this letter only scratches the surface, I don’t even know who your favorite Genshin character is yet. I want to know what makes you happy, what your dreams are, and the little things you love.
+
+I know you’ve been independent for a long time, but I hope I can become someone you can rely on too. I want to be there for you through both the good and difficult times, not just as your partner, but also as someone you can trust and feel safe with.
+
+I once read the phrase, “Mahal kita kaso bente lang pera ko,” and somehow it made me realize how deeply I care about you. Maybe I’m still a work in progress, but I genuinely want to grow into someone who can support you, not only financially someday, but emotionally and mentally as well.
+
+If you allow me to be part of your journey again, I promise to do better, to listen more, understand you better, and support you the way you deserve. I want to become someone you can truly count on.
+
+
+We got this, I got you.
+Always,
+Zhongli ng QC / Gee♡
+      </div>
+
+      <div class="actions">
+        <p>Let's settle everything over a movie date?</p>
+        <div class="btn-container">
+          <button class="btn yes" type="button" aria-label="Yes" onclick="redirectToHappy()">Yes</button>
+          <div class="no-wrapper">
+            <button class="btn no" type="button" aria-label="No">No</button>
+            <span class="hidden-text"> pls baby :< </span>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+
+    <script>
+      const noButton = document.querySelector('.btn.no');
+
+      document.addEventListener('mousemove', (e) => {
+        const buttonRect = noButton.getBoundingClientRect();
+        const distanceX = Math.abs(e.clientX - (buttonRect.left + buttonRect.width / 2));
+        const distanceY = Math.abs(e.clientY - (buttonRect.top + buttonRect.height / 2));
+        if (distanceX < 50 && distanceY < 50) {
+          noButton.classList.add('hidden');
+        } else {
+          noButton.classList.remove('hidden');
+        }
+      });
+
+      function redirectToHappy() {
+        window.location.href = "happy.html";
+      }
+    </script>
+  </body>
+</html>
